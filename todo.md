@@ -1,200 +1,492 @@
-# TODO — Lizzi Facilities (MVP)
+# TODO - Lizzi Facilities Mobile (React Native / Expo)
 
-Data: 2026-06-28
-Produto: **Lizzi Facilities** — SaaS multi-tenant de gestão de manutenção e ativos (planos **Simples** e **Premium**).
-Fonte única de regras: [Lizzi-Facilities-DOC-DESENVOLVIMENTO.md](lizzi_facilities/Lizzi-Facilities-DOC-DESENVOLVIMENTO.md) · SQL: [database.md](lizzi_facilities/database.md).
+## 0. Referencias
 
-> **Antes de codar qualquer item**, ler as Seções **2 (Regras)**, **8 (Multi-tenant)** e **12 (Dúvidas)** do DOC.
-> Stack: **Backend PHP puro + PostgreSQL (PDO)** em `https://alexios.com.br/app_lizzi_fa/` · **Frontend React (azul/branco)** · **WhatsApp via N8N + Evolution API**.
-> Identidade visual de referência: `projeto_agentes_ia/`.
+- [ ] Usar `lizzi_facilities/ANALISE.MD` como fonte de verdade do mapeamento.
+- [ ] Usar `lizzi_facilities/frontend` como referencia das regras de negocio ja implementadas.
+- [ ] Usar `lizzi_facilities/app_lizzi_fa` como referencia dos endpoints e contratos reais.
+- [ ] Manter o app mobile alinhado ao backend PHP e ao frontend web.
 
-**Legenda:** `[ ]` a fazer · `[x]` feito · 🟥 bloqueante (depende de resposta do cliente) · 🟨 definir cedo · (P) Premium.
+## 1. Objetivo do app mobile
 
-> **STATUS (2026-06-28):** **Backend completo e TESTADO em produção (26/26 OK)** — auth, cadastros, OS (status/tempos/histórico), Premium (ativos+QR, checklist, estoque, dashboard), config, admin, usuários, WhatsApp (responde sem N8N). Testado via `admin_empresa` → `lizzi_emp_2`.
-> ⚠️ **Deploy:** a app foi subida aninhada (`app_lizzi_fa/app_lizzi_fa/`) — mover o conteúdo 1 nível acima p/ ficar em `/app_lizzi_fa/`.
-> ⚠️ `config.debug=true` (desligar no lançamento). Pendências: reset de senha, Clientes (D2), Anexos (D3), valores/assinatura PDF (D8/D10), URL do N8N (D4).
-> **Frontend (React + TypeScript/CRA):** scaffold + landing **repaginada** (mockup de celular, depoimentos, WhatsApp flutuante, CNPJ, Privacidade/Termos), auth, auto-cadastro público, dashboard, unidades, OS. Responsivo. Build OK. **Falta:** demais cadastros/telas Premium/config/admin (replicar templates).
-> **Próximo:** completar as telas restantes do app + subir backend (`cadastro_publico.php`) e frontend (`build/`).
+- [ ] Posicionar o app mobile como app de campo do Lizzi Facilities.
+- [ ] Priorizar uso rapido por tecnico, supervisor e equipe operacional.
+- [ ] Garantir login rapido e simples.
+- [ ] Garantir lista de OS funcional.
+- [ ] Garantir agenda do tecnico funcional.
+- [ ] Garantir abertura de nova OS.
+- [ ] Garantir execucao de OS no celular.
+- [ ] Garantir checklist tecnico no fluxo da OS.
+- [ ] Garantir coleta de assinaturas no fluxo da OS.
+- [ ] Garantir registro de evidencias e atualizacao de status.
+- [ ] Evitar transformar o mobile numa copia completa do web logo no inicio.
+- [ ] Priorizar operacao em campo antes de administracao completa.
 
----
+## 2. Estado atual do mobile
 
-## 🟥 0. Bloqueantes — resolver ANTES de implementar a parte afetada
+### 2.1 O que existe hoje
 
-> Dúvidas 🟥 da Seção 12 do DOC. Sem resposta, **não** começar a funcionalidade dependente.
+- [ ] Considerar que o app atual ja tem login.
+- [ ] Considerar que o app atual ja tem sessao com `AsyncStorage`.
+- [ ] Considerar que o app atual ja tem lista de OS.
+- [ ] Considerar que o app atual ja tem agenda.
+- [ ] Considerar que o app atual ja tem criacao de OS.
+- [ ] Considerar que o app atual ja tem detalhe de OS.
+- [ ] Considerar que o app atual ja tem mudanca de status.
+- [ ] Considerar que o app atual ja tem checklist basico.
+- [ ] Considerar que o app atual ja tem assinaturas com `react-native-signature-canvas`.
 
-- [x] ~~**D13 — Estratégia multi-tenant (banco)**~~ **RESOLVIDO:** **1 banco por cliente** (central `lizzi_facilities` + `lizzi_emp_<id>` criado no cadastro).
-- [ ] **D2 — "Clientes":** é um `user` com perfil `solicitante`, uma entidade própria nova, ou reuso? Afeta OS (`solicitante_id`) e o PDF. → resolver antes da Fase 3.
-- [ ] **D8 — Valores/pagamento no PDF:** "Forma de pagamento", "Valor unitário/total", "Total" vêm de quê? Só soma de materiais ou há mão de obra? Premium só ou Simples também? → resolver antes da Fase 6 (PDF).
-- [x] ~~**D1 — Auth**~~ **RESOLVIDO:** token em tabela (`usuarios.token` + `token_expira_em`, 7 dias) no central; validado a cada request. Migração: `migration_usuarios_token.sql`.
-- [ ] **D4 (parte) — WhatsApp:** host da Evolution API, onboarding da instância por cliente (criar + conectar QR), formato do `to`, retry/confirmação de entrega.
+### 2.2 Problemas atuais
 
----
+- [x] Resolver o problema de toda a aplicacao estar concentrada em um unico `App.tsx`.
+- [x] Remover `API_BASE` hardcoded de dentro do arquivo principal.
+- [x] Separar regra de negocio da camada de UI.
+- [x] Corrigir divergencias entre mobile e web nas regras de checklist.
+- [x] Corrigir divergencias entre mobile e web nas regras de status da OS.
+- [ ] Mapear e implementar os modulos que ainda faltam no app de campo.
+- [x] Corrigir textos com problema de encoding.
 
-## 1. Fundação do backend (PHP puro)
+### 2.3 Direcao de arquitetura
 
-> Estrutura da Seção 3.5 do DOC. Servido em `https://alexios.com.br/app_lizzi_fa/`. Um arquivo por funcionalidade; helpers comuns em `core/`. **Construído em [app_lizzi_fa/](lizzi_facilities/app_lizzi_fa/).**
+- [x] Refatorar o mobile para arquitetura simples por modulos.
+- [x] Manter Expo + React Native.
+- [x] Evitar Redux neste momento.
+- [ ] Usar contexto de autenticacao e estado local simples.
+- [x] Separar API, tipos, regras e UI.
+- [x] Manter a manutencao facil para evolucao futura.
 
-- [x] `config.php` + `config.example.php` (banco/credenciais, `app_base_url`, N8N/Evolution). `.gitignore` exclui `config.php`.
-- [x] `core/db.php` — `config()` + `dbCentral()` (PDO no central, prepared statements).
-- [x] `core/auth.php` — token em tabela (`autenticar()`) + `exigirPerfil/Empresa/Premium`.
-- [x] `core/tenant.php` — `conectarTenant($db_nome)` + `criarBancoEmpresa()` (`CREATE DATABASE` + roda `tenant_template.sql`).
-- [x] `core/log.php` — `registrarLog()` (Regra 11; grava no banco da empresa).
-- [x] `core/response.php` — `jsonResponse/jsonError/bodyJson/cors`.
-- [x] `login.php` / `logout.php` + `.htaccess` (repassa `Authorization`).
-- [x] `empresas/empresa_criar.php` — admin_geral cria empresa + banco da empresa.
-- [ ] Upload via `$_FILES` + `move_uploaded_file` → `uploads/` (na fase de OS/imagens).
+## 3. Arquitetura simples proposta
 
-## 2. Banco de dados (PostgreSQL — 1 banco por cliente) — ver [database.md](lizzi_facilities/database.md)
+- [x] Criar `src/config/`.
+- [x] Criar `src/lib/`.
+- [x] Criar `src/modules/auth/`.
+- [x] Criar `src/modules/os/`.
+- [x] Criar `src/modules/agenda/`.
+- [ ] Criar `src/modules/checklist/`.
+- [ ] Criar `src/modules/signature/`.
+- [ ] Criar `src/modules/ativos/`.
+- [ ] Criar `src/modules/common/`.
+- [x] Criar `src/components/`.
+- [x] Criar `src/theme/`.
+- [x] Criar `src/types/`.
 
-> D13 resolvido: banco central + um banco por empresa. SQL: [central.sql](lizzi_facilities/central.sql) e [tenant_template.sql](lizzi_facilities/tenant_template.sql).
+### 3.1 Responsabilidades
 
-- [x] Escrever o SQL: `central.sql` (empresas/usuarios) + `tenant_template.sql` (operacional, sem `tenant_id`).
-- [x] Criar o banco central e rodar `central.sql` (cria `admin_geral`). **(feito em produção)**
-- [x] Migração do token no central (`token`/`token_expira_em`) — confirmado em produção.
-- [x] Backend do **cadastro de empresa** (`empresas/empresa_criar.php`: INSERT em `empresas` → `CREATE DATABASE lizzi_emp_<id>` → roda `tenant_template.sql` → grava `db_nome`).
-- [x] Trigger de `codigo` da OS validado (gerou `OS-000001`) + `updated_at` ok.
-- [ ] (Após D2) `clientes` / (Após D3) `os_anexos` no `tenant_template.sql`, se confirmados.
+- [x] Colocar `API_BASE`, chaves de storage e constantes em `config`.
+- [x] Colocar cliente HTTP, helpers e formatadores em `lib`.
+- [x] Colocar chamadas HTTP de dominio em `modules/*/api.ts`.
+- [ ] Colocar contratos de dominio em `modules/*/types.ts`.
+- [ ] Colocar regras de tela em `modules/*/hooks.ts` quando fizer sentido.
+- [ ] Colocar telas por dominio em `modules/*/screens/`.
+- [x] Colocar componentes reutilizaveis em `components`.
+- [x] Colocar cores, espacos e tipografia em `theme`.
+- [x] Colocar tipos compartilhados em `types`.
 
-## 3. Cadastros base (Simples + Premium)
+### 3.2 Regra de simplicidade
 
-> CRUD com soft delete + log. Hierarquia obrigatória: **Unidade → Piso → Local**.
-> Convenção: cadastros simples = **1 arquivo por entidade** roteado por método HTTP (GET/POST/PUT/DELETE). OS = arquivos por ação.
-> Helpers: `core/crud.php` (inserir/atualizar/softDelete/existe) + `contextoEmpresa()` (auth + conecta no banco da empresa).
+- [x] Evitar overengineering.
+- [x] Evitar logica critica perdida dentro de JSX grande.
+- [x] Dar nome claro para funcoes de regra.
+- [x] Evitar chamadas de API espalhadas de forma desorganizada.
 
-- [x] Autenticação: `login.php` / `logout.php` (validado). Reset de senha: pendente.
-- [x] `cadastros/unidades.php` (CRUD).
-- [x] `cadastros/pisos.php` (CRUD, valida unidade).
-- [x] `cadastros/locais.php` (CRUD, valida unidade+piso).
-- [x] `cadastros/categorias.php` (CRUD).
-- [x] `cadastros/tecnicos.php` (usuário central perfil 'tecnico' + vínculo `tecnicos_unidades`).
-- [x] Cadastros testados em produção contra `lizzi_emp_2`.
-- [ ] Clientes — após **D2**.
+## 4. Regras globais do app mobile
 
-## 4. Ordem de Serviço — Plano Simples
+### 4.1 Autenticacao e sessao
 
-> Ciclo de vida e regras: Seção 7.2 do DOC.
+- [x] Fazer login via `POST /login.php`.
+- [x] Fazer logout via `POST /logout.php`.
+- [x] Armazenar `token` e `usuario` com `AsyncStorage`.
+- [x] Limpar sessao em caso de `401`.
+- [x] Redirecionar o usuario para login ao perder sessao.
+- [x] Centralizar `TOKEN_KEY` e `USER_KEY`.
 
-- [x] `os/os_criar.php` — obrigatórios: Unidade, Piso, Local, Tipo. `codigo` pelo trigger. Agendamento (técnico/data ou imediato) + histórico de abertura.
-- [x] `os/os_atualizar_status.php` — transições + **tempos automáticos** (`inicio`/`fim`/`tempo_total_minutos`) + histórico (executar foi unificado aqui).
-- [x] `os/os_imagens.php` — upload (`$_FILES`) + grava em `os_imagens` (abertura/execução/conclusão).
-- [x] `os/os_listar.php` (escopo por perfil) + `os/os_detalhe.php` (imagens, histórico, checklist, materiais).
-- [x] Testado em produção (26/26).
+### 4.2 Perfis
 
-## 5. WhatsApp (N8N + Evolution API) — número por cliente
+- [ ] Reconhecer os perfis `admin_geral`, `admin_empresa`, `supervisor`, `tecnico` e `solicitante`.
+- [ ] Priorizar a experiencia mobile para `tecnico`.
+- [ ] Priorizar a experiencia mobile para `supervisor`.
+- [ ] Priorizar a experiencia mobile para `admin_empresa`.
+- [ ] Tratar `admin_geral` como perfil fora do foco principal do app de campo.
+- [ ] Definir se `solicitante` tera uso real no mobile.
 
-> Seção 7.4 do DOC. Backend só faz `POST` (cURL) no webhook do N8N; o N8N envia pela **Evolution API**, da **instância do tenant**.
+### 4.3 Planos
 
-- [x] Config de WhatsApp por empresa (em `config_empresa/configuracoes.php`).
-- [x] `os/os_enviar_whatsapp.php` — monta a mensagem + `POST` (cURL) no N8N (`core/whatsapp.php`), tipo técnico/cliente.
-- [ ] Configurar a URL/secret do N8N no `config.php` (hoje vazio → endpoint responde 409 "não configurado").
-- [ ] (Após D4) Onboarding da instância na Evolution API por cliente + retry/confirmação de entrega.
+- [x] Respeitar `simples` e `premium`.
+- [x] Derivar `isPremium` de `usuario.plano === 'premium'`.
+- [x] Ocultar recursos premium no app quando o plano nao permitir.
+- [x] Respeitar bloqueio de API para premium mesmo que a UI falhe.
+- [x] Tratar `HTTP 402` sem quebrar o fluxo do app.
 
-## 6. Personalização + PDF da OS
+### 4.4 Erros
 
-> Seção 7.9 do DOC. Depende de **D8** (valores/pagamento) e **D10** (assinaturas).
+- [x] Exibir erro de rede com mensagem amigavel.
+- [x] Priorizar `json.message` vindo do backend.
+- [x] Evitar mostrar erro cru para o usuario final.
+- [x] Criar componente padrao para `erro`, `ok` e `aviso`.
 
-- [x] Config visual por empresa em `config_empresa/configuracoes.php` (GET/PUT: logo, cores, contatos).
-- [x] `os/os_pdf.php` — versão **imprimível HTML** (empresa, OS, materiais c/ total, assinaturas). *(Sem lib de PDF por ora; imprime no navegador.)*
-- [ ] (Após D8/D10) Forma de pagamento/valor de serviço no PDF + assinatura digital (canvas).
+### 4.5 Texto e idioma
 
-## 7. Premium — Ativos, Checklist, Estoque, Dashboard
+- [x] Corrigir todos os textos com encoding quebrado.
+- [x] Padronizar todo o app em pt-BR.
+- [x] Padronizar labels de status, prioridade e acoes.
 
-- [x] (P) **Ativos + QR Code:** `ativos/ativos.php` (CRUD, gera `qr_code`) + `ativos/por_qr.php` (scan → ativo + histórico de OS). *(QR como imagem: frontend; conteúdo final D9.)*
-- [x] (P) **Checklist:** `checklist/modelos.php`, `checklist/itens.php`, `checklist/por_categoria.php` (carrega pela categoria), `checklist/respostas.php`.
-- [x] (P) **Estoque:** `estoque/materiais.php` + `estoque/movimentacoes.php` (entrada/saída atualiza `quantidade_atual`; valida estoque).
-- [x] (P) **Dashboard:** `dashboard/indicadores.php` (totais, tempo médio, por técnico, por unidade).
-- [x] **Gating Premium no backend:** `exigirPremium()` em todos os endpoints Premium (checa `empresas.plano`).
-- [x] Testado em produção (26/26).
+## 5. Mapa de dominios do mobile
 
-## 8. Painel admin_geral + usuários
+### 5.1 MVP de campo
 
-- [x] `empresas/empresa_criar.php` (cria empresa + banco) e `empresas/empresas.php` (listar/atualizar plano/status, contagem de usuários).
-- [x] `usuarios/usuarios.php` — gestão de usuários da empresa (admin_empresa/supervisor/tecnico/solicitante).
-- [x] `cadastros/tecnicos.php` — técnicos (usuário central + vínculo com unidades).
-- [x] Testado em produção (26/26). Pendências: reset de senha; tabela `planos` (D5) se necessário.
+- [x] Implementar autenticacao.
+- [x] Implementar lista de OS.
+- [x] Implementar agenda.
+- [x] Implementar nova OS.
+- [x] Implementar detalhe da OS.
+- [x] Implementar mudanca de status.
+- [x] Implementar checklist.
+- [x] Implementar assinaturas.
+- [x] Implementar imagens e evidencias da OS.
 
----
+### 5.2 Segunda camada
 
-## 9. Frontend (React + TypeScript / CRA — azul/branco) — em `lizzi_facilities/frontend/`
+- [ ] Implementar materiais usados na OS.
+- [ ] Implementar envio de WhatsApp a partir da OS.
+- [ ] Implementar abertura de PDF da OS.
+- [ ] Implementar consulta de equipamento por QR.
+- [ ] Implementar nova OS por equipamento.
 
-> SPA TypeScript (Create React App, `npm start`, HashRouter, `homepage:'.'`) servível de qualquer subpasta no LiteSpeed. Cliente de API com token em `src/lib/api.ts`; `API_BASE` em `src/config.ts`. **Build validado (`npm run build` OK, "Compiled successfully").**
+### 5.3 Fora do foco inicial
 
-- [x] Setup CRA + React + **TypeScript** + Router + tema azul/branco (`styles.css`) + layout (sidebar/topbar).
-- [x] **Polimento UI v2 (profissional/elegante/animado):** fonte **Inter**, **fundo gradiente animado + orbs flutuantes**, **scroll-reveal** (`useReveal`), **contadores animados** (`Contador`), texto com degradê, micro-interações (hover lift/glow, brilho nos botões), sidebar responsiva com hambúrguer. **Validado por screenshot (desktop + mobile + página inteira).** Build OK.
-- [x] **Polimento v3 (tema manutenção, sem "cara de I.A"):** emojis trocados por **ícones SVG** (`Icones.tsx` — chave, QR, checklist, caixa, gráfico, engrenagem...), seção **"Como funciona na prática"** (passos numerados), e **rótulos pt-br humanizados** (`rotulos.ts`: "Em andamento", "Aguardando aprovação", "Concluído"...) nas telas de OS.
-- [x] **Aba "Soluções"** (`/solucoes`): problema→solução (Antes ✕ / Com a Lizzi ✓), como usar no dia a dia, **para quem é** (condomínios, indústria, varejo, saúde, escolas, facilities) e benefícios. Link no menu e no rodapé.
-- [x] **Polimento v4 (auth + pós-login):** `AuthLayout` (tela dividida com painel da marca) no **login** e **cadastro** (+ seletor de plano); **dashboard** com saudação, card CTA, **stat-cards com ícone/cor + contador** e tabelas por técnico/unidade; menu lateral com ícones SVG. **Validado por screenshot (login, cadastro e dashboard com dados mockados).**
-- [x] **Polimento v5 (login/cadastro):** **ícones nos campos** (email, cadeado, usuário, prédio, WhatsApp) e efeito **"antigravity"** — chips de vidro com ícones de manutenção levitando no painel. Cadastro enxuto (coluna única, plano em toggle). Validado por screenshot.
-- [x] **Erros amigáveis pt-br:** `api.ts` trata erro de rede ("Não foi possível conectar...") e dá texto amigável por status (403/404/409/422/500/502); mensagens do backend (pt-br) têm prioridade. Backend deixou de vazar exceção crua no cadastro (loga no servidor).
-- [x] **Bug "Failed to fetch" no cadastro RESOLVIDO:** causa = `config.ts` apontava p/ `/app_lizzi_fa` mas o backend está aninhado em `/app_lizzi_fa/app_lizzi_fa` → preflight OPTIONS dava 404 sem CORS. Apontei o `config.ts` p/ o caminho aninhado (testado: signup cria empresa+banco+token OK). **Ao achatar a pasta, trocar `API_BASE` de volta p/ `/app_lizzi_fa`.**
-- [x] Auth: login + guarda de rotas (`Protegido`) + token em localStorage + logout.
-- [x] **Landing page** (hero, funcionalidades, planos Simples/Premium) — rota pública `/`.
-- [x] **Auto-cadastro público** (`/cadastro`): tela "Criar conta" + endpoint `empresas/cadastro_publico.php` (cria empresa+banco+admin e auto-login). ⚠️ Antes de produção: captcha/confirmação de e-mail (anti-abuso). Decisão de onboarding: **self-service**.
-- [x] Dashboard (indicadores Premium; aviso no Simples).
-- [x] Cadastro **Unidades** (CRUD completo — template dos demais).
-- [x] OS: lista (filtro status), nova (selects em cascata unidade→piso→local), detalhe (status, WhatsApp, PDF, histórico).
-- [ ] Demais cadastros (pisos/locais/categorias/técnicos) — replicar template de Unidades.
-- [ ] (P) Telas Premium: ativos+QR, checklist, estoque.
-- [ ] Config da empresa (visual + WhatsApp) + painel admin_geral (empresas/usuários).
-- [ ] Recuperação de senha (depende do endpoint no backend).
+- [ ] Deixar painel `admin_geral` fora do escopo inicial do mobile.
+- [ ] Deixar configuracao institucional completa fora do escopo inicial do mobile.
+- [ ] Deixar relatorios amplos fora do escopo inicial do mobile.
+- [ ] Deixar CRUD administrativo completo fora do escopo inicial do mobile.
 
----
+## 6. Regras da Ordem de Servico
 
-## 10. 🟦 Landing page (site do produto) — **repaginada e responsiva**
+### 6.1 Status oficiais
 
-> Página de marketing/venda do **Lizzi Facilities** (azul/branco), foco em conversão. Rota pública `/` no mesmo app React (LP-1 ✅).
+- [ ] Considerar `aberto` como status oficial.
+- [ ] Considerar `em_andamento` como status oficial.
+- [ ] Considerar `interrompido` como status oficial.
+- [ ] Considerar `aguardando_aprovacao` como status oficial.
+- [ ] Considerar `concluido` como status oficial.
+- [ ] Considerar `cancelado` como status oficial.
 
-- [x] **LP-1 (decisão):** rota pública `/` no app React.
-- [x] **Hero** com gradiente, selo, CTAs ("Criar conta grátis" / "Acessar") + linha de confiança.
-- [x] **Mockup de celular interativo** mostrando a cara do sistema (mini OS + status + stats, com animação flutuante).
-- [x] **Funcionalidades** (6 cards com ícone + hover).
-- [x] **Comparativo de planos** Simples vs Premium (CTAs levam ao `/cadastro?plano=`).
-- [x] **Prova social:** seção de **depoimentos** (3 clientes, estrelas, avatar).
-- [x] **CTA final** + **captação via auto-cadastro** (`/cadastro`) e WhatsApp.
-- [x] **Botão flutuante de WhatsApp** (`WhatsappFlutuante`) na landing e páginas legais.
-- [x] **Footer** com **CNPJ 58.030.824/0001-94** + links Privacidade/Termos/WhatsApp.
-- [x] **Política de Privacidade** (`/privacidade`, LGPD) e **Termos de Uso** (`/termos`) com o CNPJ.
-- [x] **Responsivo** (hero/sidebar/seções adaptam ao mobile). Meta description no `index.html`.
-- [ ] SEO extra (OpenGraph/imagem de preview/favicon) e **Analytics** (pixel/GA) — confirmar ferramenta.
-- [ ] (Recomendado) Captcha + confirmação de e-mail no `/cadastro` antes de produção (anti-abuso).
+### 6.2 Labels oficiais
 
----
+- [x] Mapear `aberto` para `Atribuido`.
+- [x] Mapear `em_andamento` para `Em execucao`.
+- [ ] Mapear `interrompido` para `Interrompido`.
+- [x] Mapear `aguardando_aprovacao` para `Aguardando aprovacao do cliente`.
+- [x] Mapear `concluido` para `Concluido`.
+- [ ] Mapear `cancelado` para `Cancelado`.
 
-## 11. Multi-tenant — checklist de enforcement (aplicar em CADA arquivo PHP)
+### 6.3 Maquina de estados oficial
 
-> Seção 8 do DOC. Critério de aceite recorrente, não uma etapa única.
+- [x] Permitir `aberto -> em_andamento`.
+- [x] Permitir `em_andamento -> interrompido`.
+- [x] Permitir `em_andamento -> aguardando_aprovacao`.
+- [x] Permitir `em_andamento -> concluido`.
+- [x] Permitir `interrompido -> em_andamento`.
+- [x] Permitir `aguardando_aprovacao -> aberto` com reagendamento.
+- [x] Permitir cancelamento de estados ainda abertos.
+- [x] Travar OS em `concluido`.
+- [x] Travar OS em `cancelado`.
 
-- [ ] Autenticar (`core/auth.php`) antes de qualquer ação.
-- [ ] Ler `db_nome` do token (nunca do body/cliente) e conectar no banco da empresa.
-- [ ] Rodar as queries no banco da empresa (sem `tenant_id`).
-- [ ] `admin_geral` (`empresa_id` NULL) é a **única** exceção que acessa outros bancos.
-- [ ] Nunca conectar num banco diferente do da empresa logada.
-- [ ] Validar que o recurso (por ID) existe no banco da empresa antes de expor/alterar.
+### 6.4 Correcoes de divergencia no mobile atual
 
-## 12. Definition of Done (Seção 10 do DOC)
+- [x] Corrigir a regra atual do mobile que conclui apenas a partir de `aguardando_aprovacao`.
+- [x] Alinhar a conclusao com a regra real do web.
+- [x] Corrigir o retorno de `aguardando_aprovacao` para `aberto`.
+- [x] Incluir o fluxo correto de reagendamento ao voltar para `aberto`.
 
-- [ ] Nada fora do escopo da Seção 5.
-- [ ] Banco central (`empresas`/`usuarios`) + 1 banco por empresa; tabelas operacionais com `created_at`/`updated_at`/`deleted_at`.
-- [ ] Isolamento entre empresas testado (empresa A não acessa o banco de B).
-- [ ] Soft delete em todas as exclusões; nada apagado fisicamente.
-- [ ] OS gera histórico em toda mudança de status; tempos calculados automaticamente.
-- [ ] Imagens em `os_imagens`; materiais geram `saida` em `materiais_movimentacoes`.
-- [ ] `codigo` da OS sequencial por empresa.
-- [ ] Simples não obriga ativo; Premium permite OS por ativo ou local.
-- [ ] Checklist Premium carregado pela categoria do ativo.
-- [ ] Auth validada em todos os endpoints; senhas com `password_hash`.
-- [ ] Frontend React simples (azul/branco), responsivo, < 10 min de aprendizado.
-- [ ] Backend **PHP puro**: 1 arquivo por funcionalidade, config único (`config.php`).
-- [ ] Banco **PostgreSQL** (`lizzi_facilities`) via PDO; sem dependência de MySQL.
-- [ ] Landing page no ar, responsiva, com CTA funcional e captação de lead.
+### 6.5 Regras de travamento
 
----
+- [x] Travar OS `concluido` para edicao.
+- [x] Travar OS `cancelado` para edicao.
+- [x] Bloquear novas imagens em OS encerrada.
+- [x] Bloquear checklist em OS encerrada.
+- [ ] Bloquear materiais em OS encerrada.
+- [x] Bloquear assinaturas em OS encerrada.
+- [x] Exibir aviso claro de OS somente leitura.
 
-## 13. Dúvidas em aberto (Seção 12 do DOC)
+### 6.6 Campos principais da OS
 
-> 🟥 = bloqueante · 🟨 = definir cedo · ✅ = resolvido.
+- [ ] Mapear `codigo`.
+- [ ] Mapear `status`.
+- [ ] Mapear `tipo de chamado`.
+- [ ] Mapear `prioridade`.
+- [ ] Mapear `unidade / piso / local`.
+- [ ] Mapear `equipamento`.
+- [ ] Mapear `tecnico`.
+- [ ] Mapear `solicitante`.
+- [ ] Mapear `avaria`.
+- [ ] Mapear `descricao`.
+- [x] Mapear `observacao`.
+- [ ] Mapear `data/hora agendada`.
+- [ ] Mapear `inicio/fim atendimento`.
+- [ ] Mapear `tempo total`.
 
-- [x] ✅ D1 Auth (token em tabela) · [ ] D2 🟥 Clientes · [ ] D3 🟨 Anexos · [ ] D4 🟨 WhatsApp (Evolution: host/onboarding/retry)
-- [ ] D5 🟨 Planos (strings/preços) · [x] ✅ D6 `admin_geral` (central, `empresa_id` NULL) · [ ] D7 🟨 Permissões finas · [ ] D8 🟥 Valores/PDF
-- [ ] D9 🟨 QR Code (conteúdo) · [ ] D10 🟨 Assinaturas PDF · [ ] D11 🟨 Storage (local/S3) · [ ] D12 🟨 Acesso à identidade visual
-- [x] ✅ D13 multi-tenant (1 banco por cliente) · [x] ✅ LP-1 Landing no mesmo app React (rota pública `/`)
+## 7. Regras de criacao de OS
+
+- [x] Carregar unidades.
+- [x] Carregar pisos a partir da unidade.
+- [x] Carregar locais a partir do piso.
+- [x] Filtrar tecnicos por unidade quando aplicavel.
+- [x] Permitir vincular equipamento no plano premium.
+- [x] Permitir abrir OS por local sem equipamento.
+- [x] Tornar tipo de chamado obrigatorio.
+- [x] Definir prioridade padrao como `media`.
+- [x] Permitir data agendada opcional.
+- [x] Permitir hora agendada opcional.
+- [x] Criar OS via `POST /os/os_criar.php`.
+- [x] Abrir detalhe da OS apos criacao.
+- [ ] Validar melhor campos obrigatorios antes do envio.
+- [x] Exibir loading claro durante criacao.
+- [x] Incluir evidencias de abertura no mobile.
+
+## 8. Regras de checklist
+
+### 8.1 Fonte de verdade
+
+- [x] Carregar checklist por `GET /checklist/por_os.php?os_id=...`.
+- [x] Parar de depender apenas de categoria do ativo.
+- [x] Respeitar o contexto completo da OS.
+
+### 8.2 Divergencia atual
+
+- [x] Remover dependencia principal de `GET /checklist/por_categoria.php?categoria_id=...` no fluxo da OS.
+- [x] Alinhar o mobile com o comportamento do web.
+
+### 8.3 Regras por item
+
+- [x] Respeitar item obrigatorio.
+- [x] Respeitar item que exige foto.
+- [x] Respeitar item que exige observacao.
+- [x] Respeitar a ordem definida dos itens.
+
+### 8.4 Salvamento
+
+- [x] Salvar checklist via `POST /checklist/respostas.php`.
+- [x] Subir imagem de item via `POST /checklist/imagem.php` quando necessario.
+- [x] Recarregar respostas salvas ao abrir a OS.
+- [x] Marcar visualmente itens pendentes.
+
+### 8.5 Gap atual
+
+- [x] Implementar foto por item de checklist no mobile.
+
+## 9. Regras de assinatura
+
+- [x] Implementar assinatura do tecnico.
+- [x] Implementar assinatura do cliente.
+- [x] Enviar assinatura via `POST /os/os_assinatura.php`.
+- [x] Salvar assinatura como arquivo temporario antes do upload.
+- [x] Bloquear assinatura em OS encerrada.
+- [x] Exibir assinatura existente quando houver URL.
+- [x] Impedir envio de assinatura vazia.
+
+## 10. Regras de imagens e evidencias
+
+- [x] Permitir imagens de `abertura`.
+- [x] Permitir imagens de `execucao`.
+- [x] Permitir imagens de `conclusao`.
+- [x] Enviar imagem via `POST /os/os_imagens.php`.
+- [x] Listar imagens existentes da OS.
+- [x] Permitir excluir imagem enquanto a OS estiver aberta.
+- [x] Bloquear envio e exclusao em OS encerrada.
+- [x] Implementar esse fluxo no mobile, pois hoje ele nao existe.
+
+## 11. Regras de agenda
+
+- [x] Listar OS com `data_agendada`.
+- [x] Ocultar concluidas e canceladas no foco operacional.
+- [x] Ordenar por data e hora.
+- [x] Abrir detalhe da OS direto pela agenda.
+- [x] Manter botao de atualizar.
+- [ ] Evoluir depois para filtros por tecnico e status, se necessario.
+
+## 12. Regras de materiais e estoque
+
+- [ ] Listar materiais usados na OS.
+- [ ] Adicionar material na OS.
+- [ ] Permitir cadastrar material novo sob demanda somente se essa regra continuar valida.
+- [ ] Enviar consumo via `POST /estoque/movimentacoes.php`.
+- [ ] Exibir total de materiais usados na OS.
+- [ ] Bloquear alteracoes em OS encerrada.
+- [ ] Manter estoque administrativo completo como foco do web, nao do mobile.
+
+## 13. Regras de equipamentos e QR Code
+
+- [ ] Permitir consulta de equipamento por QR no plano premium.
+- [ ] Exibir identificacao do equipamento.
+- [ ] Exibir historico de OS do equipamento.
+- [ ] Permitir abrir nova OS a partir do equipamento.
+- [ ] Consumir `GET /ativos/por_qr.php?codigo=...`.
+- [ ] Definir se a leitura inicial sera manual ou por camera.
+- [ ] Considerar consulta manual como primeira entrega.
+- [ ] Considerar scanner de camera como evolucao posterior.
+
+## 14. Regras de permissao no mobile
+
+### 14.1 Acoes operacionais
+
+- [ ] Garantir que tecnico veja OS e agenda.
+- [ ] Garantir que tecnico execute OS, checklist e assinatura.
+- [ ] Garantir que supervisor tenha acoes operacionais ampliadas se necessario.
+- [ ] Garantir que admin_empresa tenha acoes operacionais ampliadas se necessario.
+
+### 14.2 Acoes administrativas
+
+- [ ] Definir se o mobile tera cadastro de usuario.
+- [ ] Definir se o mobile tera cadastros mestre.
+- [ ] Definir se o mobile tera reagendamento e troca de tecnico.
+- [ ] Definir se o mobile tera disparo de WhatsApp.
+- [ ] Manter o app de campo enxuto enquanto essas decisoes nao forem priorizadas.
+
+## 15. Mapa de APIs do mobile
+
+### 15.1 Auth
+
+- [x] Consumir `POST /login.php`.
+- [x] Consumir `POST /logout.php`.
+
+### 15.2 Cadastros auxiliares
+
+- [x] Consumir `GET /cadastros/unidades.php`.
+- [x] Consumir `GET /cadastros/pisos.php?unidade_id=...`.
+- [x] Consumir `GET /cadastros/locais.php?piso_id=...`.
+- [x] Consumir `GET /cadastros/tecnicos.php`.
+- [x] Consumir `GET /cadastros/categorias.php`.
+
+### 15.3 Ordem de servico
+
+- [x] Consumir `GET /os/os_listar.php`.
+- [x] Consumir `POST /os/os_criar.php`.
+- [x] Consumir `GET /os/os_detalhe.php?id=...`.
+- [x] Consumir `POST /os/os_atualizar_status.php`.
+- [x] Consumir `POST /os/os_agendar.php`.
+- [ ] Consumir `POST /os/os_enviar_whatsapp.php`.
+- [x] Consumir `POST /os/os_assinatura.php`.
+- [x] Consumir `GET/POST/DELETE /os/os_imagens.php`.
+- [ ] Consumir `GET /os/os_pdf.php?id=...`.
+
+### 15.4 Checklist
+
+- [x] Consumir `GET /checklist/por_os.php?os_id=...`.
+- [x] Consumir `POST /checklist/respostas.php`.
+- [x] Consumir `POST /checklist/imagem.php`.
+
+### 15.5 Premium
+
+- [x] Consumir `GET /ativos/ativos.php`.
+- [ ] Consumir `GET /ativos/por_qr.php?codigo=...`.
+- [ ] Consumir `GET /estoque/materiais.php`.
+- [ ] Consumir `POST /estoque/movimentacoes.php`.
+
+## 16. Fases de implementacao
+
+### Fase 1 - Base tecnica
+
+- [x] Criar estrutura `src/` por modulos.
+- [x] Extrair `API_BASE`, chaves de storage e constantes.
+- [x] Criar cliente `api.ts` unico.
+- [ ] Criar servico/contexto de autenticacao.
+- [x] Criar formatadores de status, prioridade, data e tempo.
+- [x] Corrigir encoding dos textos.
+- [x] Tirar logica de negocio do `App.tsx`.
+
+### Fase 2 - Shell do app
+
+- [ ] Criar `AuthProvider`.
+- [x] Criar fluxo de login/logout.
+- [x] Criar navegacao simples entre login, OS, agenda, nova OS e detalhe OS.
+- [x] Criar topo, feedback e componentes base reutilizaveis.
+
+### Fase 3 - OS core
+
+- [x] Entregar lista de OS.
+- [x] Entregar filtros minimos.
+- [x] Entregar agenda.
+- [x] Entregar nova OS com cascata unidade/piso/local.
+- [x] Entregar detalhe da OS.
+- [x] Entregar maquina de status alinhada ao web.
+- [x] Entregar travamento de OS encerrada.
+
+### Fase 4 - Evidencias e execucao
+
+- [x] Entregar imagens da OS.
+- [x] Entregar checklist por OS.
+- [x] Entregar foto de item de checklist.
+- [x] Entregar assinaturas.
+- [x] Entregar validacoes claras para o tecnico.
+
+### Fase 5 - Premium operacional
+
+- [ ] Entregar equipamento por OS.
+- [ ] Entregar consulta por QR.
+- [ ] Entregar materiais da OS.
+- [ ] Entregar consumo de estoque na OS.
+
+### Fase 6 - Acabamento operacional
+
+- [ ] Entregar WhatsApp a partir da OS.
+- [ ] Entregar abertura de PDF da OS.
+- [ ] Refinar loading por bloco.
+- [ ] Refinar empty states.
+- [ ] Refinar tratamento de erro padrao.
+- [ ] Refinar UX de campo.
+
+### Fase 7 - QA e release
+
+- [ ] Validar Android real.
+- [ ] Validar sessao expirada.
+- [ ] Validar plano simples.
+- [ ] Validar plano premium.
+- [ ] Validar tecnico sem permissao administrativa.
+- [ ] Validar OS encerrada travada.
+- [ ] Validar checklist obrigatorio.
+- [ ] Validar assinatura.
+- [ ] Gerar APK release final.
+
+## 17. Refatoracoes especificas no app atual
+
+- [x] Quebrar `App.tsx` em modulos reais.
+- [x] Mover `api()` para arquivo dedicado.
+- [x] Mover `types` para arquivos separados.
+- [x] Mover estilos para tema e componentes.
+- [x] Extrair tela de login.
+- [x] Extrair tela de lista de OS.
+- [x] Extrair tela de agenda.
+- [x] Extrair tela de nova OS.
+- [x] Extrair tela de detalhe de OS.
+- [x] Extrair componentes como `Button`, `Chip`, `Field`, `Message` e `Card`.
+- [x] Alinhar checklist com `por_os`.
+- [x] Alinhar status com a regra oficial do web.
+- [x] Incluir imagens da OS.
+- [ ] Incluir materiais da OS.
+- [x] Remover textos quebrados por encoding.
+- [x] Externalizar `API_BASE`.
+
+## 18. Definition of Done do mobile
+
+- [x] O app seguir arquitetura simples por modulos.
+- [x] O `App.tsx` deixar de ser monolitico.
+- [x] Login, sessao e logout funcionarem.
+- [x] Lista, agenda, nova OS e detalhe funcionarem.
+- [x] Status da OS respeitar a regra oficial do web/backend.
+- [x] Checklist respeitar a regra oficial por OS.
+- [x] Assinatura funcionar no Android real.
+- [x] Imagens da OS funcionarem.
+- [ ] Materiais da OS funcionarem.
+- [x] Plano premium e simples serem respeitados.
+- [x] Textos estarem em pt-BR correto.
+- [x] Erros estarem amigaveis.
+- [ ] APK release instalar e abrir sem tela vermelha.
+
+## 19. Decisoes que devem ser mantidas
+
+- [ ] Manter o mobile simples.
+- [ ] Priorizar uso de campo.
+- [ ] Evitar excesso de menu administrativo.
+- [ ] Alinhar sempre com backend e web como fonte de regra.
+- [ ] Nao duplicar regra de negocio sem necessidade.
+- [ ] Quando houver divergencia entre mobile e web, corrigir o mobile para a regra oficial.
