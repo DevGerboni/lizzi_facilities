@@ -1,0 +1,13 @@
+# Garante que o header Authorization chegue ao PHP (alguns Apache/FastCGI removem)
+RewriteEngine On
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
+# Bloqueia acesso direto a config.php e a arquivos .sql (template etc.)
+<FilesMatch "^(config\.php|config\.example\.php)$">
+  Require all denied
+</FilesMatch>
+<FilesMatch "\.sql$">
+  Require all denied
+</FilesMatch>
